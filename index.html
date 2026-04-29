@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+
+<title>BMW EV Garage</title>
+
+<link rel="manifest" href="manifest.json">
+
+<meta name="theme-color" content="#000000">
+
+<link rel="apple-touch-icon" href="icon-192.png">
+
+<style>
+
+/* (same BMW styling as before — unchanged for brevity) */
+
+body { margin:0; font-family:-apple-system; background:#000; color:#fff; }
+
+.header { padding:15px; font-size:18px; font-weight:600; }
+
+.cars { display:flex; overflow-x:auto; padding:10px; gap:10px; }
+
+.car { min-width:140px; background:#111; border:1px solid #222; border-radius:12px; padding:10px; }
+
+.car.active { border-color:#1c69d4; }
+
+.card { background:#111; margin:10px; border-radius:16px; padding:20px; border:1px solid #222; }
+
+.gauge { width:180px; height:180px; margin:auto; border-radius:50%;
+
+ background:conic-gradient(#1c69d4 0deg,#222 0deg);
+
+ display:flex; align-items:center; justify-content:center; }
+
+.gauge-inner { width:140px; height:140px; background:#000; border-radius:50%;
+
+ display:flex; align-items:center; justify-content:center; flex-direction:column; }
+
+.big { font-size:32px; color:#1c69d4; }
+
+.slider { width:100%; margin-top:10px; accent-color:#1c69d4; }
+
+.stats { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:15px; }
+
+.stat { background:#0f0f0f; padding:12px; border-radius:10px; border:1px solid #222; }
+
+button { width:100%; padding:14px; margin-top:15px; border-radius:12px; border:none;
+
+ background:#1c69d4; color:white; font-size:16px; }
+
+</style>
+
+</head>
+
+<body>
+
+<div class="header">My BMW Garage</div>
+
+<div class="cars" id="cars"></div>
+
+<div class="card">
+
+<div class="gauge" id="gauge">
+
+  <div class="gauge-inner">
+
+    <div class="big" id="kwh">0</div>
+
+    <div style="font-size:12px;">kWh</div>
+
+  </div>
+
+</div>
+
+<div>Current: <span id="cval">40</span>%</div>
+
+<input type="range" min="0" max="100" value="40" id="current" class="slider">
+
+<div>Target: <span id="tval">80</span>%</div>
+
+<input type="range" min="0" max="100" value="80" id="target" class="slider">
+
+<div class="stats">
+
+  <div class="stat">Energy<br><b id="energy"></b></div>
+
+  <div class="stat">Cost<br><b id="cost"></b></div>
+
+  <div class="stat">Time<br><b id="time"></b></div>
+
+  <div class="stat">Range Added<br><b id="range"></b></div>
+
+</div>
+
+<button onclick="calculate()">Start Smart Charge</button>
+
+</div>
+
+<script>
+
+const PRICE = 0.34; // realistic UK price
+
+const CHARGER_POWER = 7.4;
+
+const LOSS = 1.1; // 10% loss
+
+// efficiency (mi per kWh)
+
+const vehicles = [
+
+ {name:"BMW i3", size:39, eff:4.5},
+
+ {name:"BMW i4", size:69, eff:3.5}
+
+];
+
+let currentVehicle = vehicles[0];
+
+function renderCars(){
+
+ cars.innerHTML="";
+
+ vehicles.forEach((v,i)=>{
+
+  const d=document.createElement("div");
+
+  d.className="car"+(i===0?" active":"");
+
+  d.innerHTML=v.name+"<br><small>"+v.size+" kWh</small>";
+
+  d.onclick=()=>selectCar(i);
+
+  cars.appendChild(d);
+
+ });
+
+}
+
+function selectCar(i){
+
+ currentVehicle=vehicles[i];
+
+ document.querySelectorAll(".car").forEach(c=>c.classList.remove("active"));
+
+ document.querySelectorAll(".car")[i].classList.add("active");
+
+ calculate();
+
+}
+
+current.oninput=()=>{cval.innerText=current.value;calculate();}
+
+target.oninput=()=>{tval.innerText=target.value;calculate();}
+
+function calculate(){
+
+ const c=+current.value;
+
+ const t=+target.value;
+
+ if(t<=c) return;
+
+ const size=currentVehicle.size;
+
+ const eff=currentVehicle.eff;
+
+ let kWh=(t-c)/100*size;
+
+ kWh*=LOSS;
+
+ const costVal=kWh*PRICE;
+
+ const hours=kWh/CHARGER_POWER;
+
+ const miles=kWh*eff;
+
+ kwh.innerText=kWh.toFixed(1);
+
+ energy.innerText=kWh.toFixed(1)+" kWh";
+
+ cost.innerText="£"+costVal.toFixed(2);
+
+ time.innerText=hours.toFixed(1)+"h";
+
+ range.innerText=Math.round(miles)+" miles";
+
+ const deg=(t-c)*3.6;
+
+ gauge.style.background=`conic-gradient(#1c69d4 ${deg}deg,#222 ${deg}deg)`;
+
+}
+
+renderCars();
+
+calculate();
+
+// service worker
+
+if("serviceWorker" in navigator){
+
+ navigator.serviceWorker.register("sw.js");
+
+}
+
+</script>
+
+</body>
+
+</html>
